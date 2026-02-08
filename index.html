@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="EngCalc">
-<meta name="description" content="35+ native engineering calculators for mechanical design, tribology, bearings, fatigue, and more.">
+<meta name="description" content="40+ native engineering calculators for mechanical design, tribology, bearings, fatigue, heat transfer, and more.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -41,6 +41,7 @@
   --cat-dynamics: #14b8a6;
   --cat-power: #f97316;
   --cat-material: #a855f7;
+  --cat-heat: #e11d48;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); overflow: hidden; height: 100vh; width: 100vw; }
@@ -147,6 +148,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .install-banner p { color: white; font-size: .85rem; flex: 1; }
 .install-btn { background: var(--accent); color: white; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: .82rem; }
 .install-dismiss { background: none; border: none; color: rgba(255,255,255,.6); cursor: pointer; font-size: 1.2rem; padding: 4px; }
+
+/* HEAT TRANSFER CALCULATOR STYLES */
+.ht-results { background: linear-gradient(135deg,rgba(245,158,11,.06),rgba(245,158,11,.02)); border: 1px solid rgba(245,158,11,.25); border-radius: 8px; padding: 16px; margin-top: 12px; display: none; }
+.ht-results.show { display: block; animation: htFadeIn .3s ease; }
+@keyframes htFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+.ht-results h3 { color: var(--accent); font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
+.ht-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ht-result-item { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 8px; border-radius: 4px; background: rgba(0,0,0,.2); font-size: .82rem; }
+.ht-result-item .lbl { color: var(--text-muted); }
+.ht-result-item .val { font-family: 'SF Mono','Fira Code',monospace; font-weight: 600; color: var(--text); }
+.ht-result-item .val .unit { font-size: .72rem; color: var(--text-muted); font-weight: 400; margin-left: 3px; }
+.ht-result-item.highlight { background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.3); }
+.ht-result-item.highlight .val { color: var(--accent); }
+.ht-result-item.full { grid-column: 1 / -1; }
+.ht-result-note { font-size: .75rem; color: var(--text-muted); margin-top: 10px; padding: 8px; background: rgba(245,158,11,.08); border-radius: 4px; border-left: 3px solid var(--accent); line-height: 1.5; }
+.ht-props-display { display: grid; grid-template-columns: repeat(auto-fill,minmax(130px,1fr)); gap: 5px; margin: 8px 0 12px; padding: 8px; background: rgba(0,0,0,.15); border-radius: 6px; }
+.ht-prop-chip { font-family: 'SF Mono','Fira Code',monospace; font-size: .72rem; padding: 3px 6px; border-radius: 4px; background: var(--input-bg); display: flex; justify-content: space-between; gap: 6px; }
+.ht-prop-chip .pk { color: var(--text-muted); }
+.ht-prop-chip .pv { color: var(--accent); font-weight: 600; }
+.ht-sep { border: none; border-top: 1px solid var(--card-border); margin: 12px 0; }
+.ht-info-tag { display: inline-block; font-size: .68rem; padding: 2px 8px; border-radius: 4px; background: rgba(225,29,72,.12); color: #fb7185; margin-left: 8px; font-weight: 400; }
+.ht-btn-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.ht-btn-outline { display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: 6px; font-size: .8rem; cursor: pointer; transition: border-color .15s, color .15s; }
+.ht-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.ht-btn-sm { font-size: .75rem; padding: 4px 10px; }
+.ht-section-label { font-size: .82rem; font-weight: 700; color: var(--text-muted); margin: 12px 0 6px; }
+@media (max-width: 768px) { .ht-result-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -157,7 +185,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   </button>
   <span class="header-title" id="headerTitle">Engineering Calculators</span>
   <span class="header-subtitle" id="headerSub">Tribology &amp; Machine Design</span>
-  <div class="header-right"><span class="header-badge">35+ native calcs</span></div>
+  <div class="header-right"><span class="header-badge">40+ native calcs</span></div>
 </header>
 
 <div class="install-banner" id="installBanner">
@@ -182,7 +210,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </div>
     <h2>Engineering Calculators</h2>
-    <p>35+ native mechanical engineering calculators. All calculations run locally in your browser — no server needed, works offline.</p>
+    <p>40+ native mechanical engineering calculators. All calculations run locally in your browser — no server needed, works offline.</p>
     <div class="quick-grid" id="quickGrid"></div>
   </div>
   <div id="calcContainer"></div>
@@ -248,6 +276,97 @@ const PIPE_ROUGHNESS = {
   'Concrete': 1.0,
   'Galvanized': 0.15,
 };
+
+// ═══════════════════════════════════════════════
+// HEAT TRANSFER: FLUID PROPERTY DATABASE (VDI Heat Atlas)
+// ═══════════════════════════════════════════════
+const FLUID_DB = {
+  water: {
+    name: 'Water (liquid, saturation)',
+    T:      [0,10,20,30,40,50,60,70,80,90,100,110,120,140,160,180,200],
+    rho:    [999.8,999.7,998.2,995.6,992.2,988.1,983.2,977.8,971.8,965.3,958.4,951.0,943.1,926.1,907.4,887.0,864.7],
+    cp:     [4217,4193,4182,4178,4179,4181,4185,4190,4197,4205,4216,4229,4244,4283,4339,4410,4497],
+    lambda: [0.561,0.580,0.598,0.615,0.631,0.643,0.654,0.663,0.670,0.675,0.679,0.682,0.683,0.683,0.680,0.673,0.663],
+    mu:     [1.792e-3,1.307e-3,1.002e-3,0.798e-3,0.653e-3,0.547e-3,0.467e-3,0.404e-3,0.355e-3,0.315e-3,0.282e-3,0.255e-3,0.232e-3,0.196e-3,0.170e-3,0.150e-3,0.134e-3],
+    Pr:     [13.44,9.45,7.01,5.42,4.33,3.56,2.99,2.55,2.22,1.96,1.75,1.58,1.44,1.23,1.09,0.98,0.91],
+    beta:   [-0.68e-4,0.88e-4,2.07e-4,3.03e-4,3.85e-4,4.49e-4,5.23e-4,5.84e-4,6.32e-4,6.95e-4,7.52e-4,8.05e-4,8.55e-4,9.66e-4,10.9e-4,12.3e-4,14.1e-4]
+  },
+  air: {
+    name: 'Dry air (1 bar)',
+    T:      [-50,-20,0,20,40,60,80,100,150,200,250,300,400,500],
+    rho:    [1.584,1.395,1.293,1.205,1.127,1.059,0.999,0.946,0.834,0.746,0.674,0.616,0.524,0.456],
+    cp:     [1006,1006,1006,1007,1007,1008,1010,1012,1017,1023,1033,1040,1059,1078],
+    lambda: [0.0204,0.0228,0.0243,0.0257,0.0271,0.0285,0.0299,0.0314,0.0349,0.0383,0.0417,0.0448,0.0509,0.0566],
+    mu:     [1.474e-5,1.622e-5,1.716e-5,1.813e-5,1.907e-5,1.999e-5,2.087e-5,2.172e-5,2.380e-5,2.577e-5,2.760e-5,2.947e-5,3.291e-5,3.613e-5],
+    Pr:     [0.728,0.715,0.711,0.711,0.709,0.708,0.706,0.699,0.692,0.688,0.684,0.684,0.685,0.688],
+    beta:   null
+  }
+};
+
+function lerp(x, xArr, yArr) {
+  if (x <= xArr[0]) return yArr[0];
+  if (x >= xArr[xArr.length-1]) return yArr[yArr.length-1];
+  for (let i = 0; i < xArr.length-1; i++) {
+    if (x >= xArr[i] && x <= xArr[i+1]) {
+      const t = (x - xArr[i]) / (xArr[i+1] - xArr[i]);
+      return yArr[i] + t * (yArr[i+1] - yArr[i]);
+    }
+  }
+  return yArr[yArr.length-1];
+}
+
+function getFluidProps(fluid, T) {
+  const db = FLUID_DB[fluid];
+  if (!db) return null;
+  const props = {
+    rho: lerp(T, db.T, db.rho), cp: lerp(T, db.T, db.cp),
+    lambda: lerp(T, db.T, db.lambda), mu: lerp(T, db.T, db.mu),
+    Pr: lerp(T, db.T, db.Pr),
+    beta: db.beta ? lerp(T, db.T, db.beta) : 1/(T+273.15), nu: null
+  };
+  props.nu = props.mu / props.rho;
+  return props;
+}
+
+function htFmt(val, digits) {
+  if (val === undefined || val === null || isNaN(val)) return '—';
+  if (Math.abs(val) >= 1e5 || (Math.abs(val) < 0.01 && val !== 0)) return val.toExponential(digits||3);
+  return val.toFixed(digits !== undefined ? digits : 2);
+}
+function htFmtSci(val, digits) {
+  if (val === undefined || val === null || isNaN(val)) return '—';
+  return val.toExponential(digits||3);
+}
+function htResultHTML(items) {
+  return items.map(it => {
+    const cls = it.highlight ? 'ht-result-item highlight' : 'ht-result-item';
+    const full = it.full ? ' full' : '';
+    return '<div class="'+cls+full+'"><span class="lbl">'+it.label+'</span><span class="val">'+it.value+'<span class="unit">'+(it.unit||'')+'</span></span></div>';
+  }).join('');
+}
+function htClearResults(prefix) {
+  const el = document.getElementById(prefix+'-results');
+  if (el) el.classList.remove('show');
+}
+function htUpdateFluidProps(prefix) {
+  const fluid = document.getElementById(prefix+'-fluid').value;
+  const customDiv = document.getElementById(prefix+'-custom-props');
+  const propsDiv = document.getElementById(prefix+'-props-display');
+  if (fluid === 'custom') { customDiv.style.display = 'block'; propsDiv.innerHTML = ''; return; }
+  customDiv.style.display = 'none';
+  let T;
+  if (prefix === 'fc') T = parseFloat(document.getElementById('fc-Tb').value);
+  else if (prefix === 'nc') T = parseFloat(document.getElementById('nc-Tf').value);
+  if (isNaN(T)) return;
+  const p = getFluidProps(fluid, T);
+  if (!p) return;
+  propsDiv.innerHTML = [
+    {k:'&rho;',v:htFmt(p.rho,1),u:'kg/m&sup3;'},{k:'c<sub>p</sub>',v:htFmt(p.cp,0),u:'J/(kg&middot;K)'},
+    {k:'&lambda;',v:htFmt(p.lambda,4),u:'W/(m&middot;K)'},{k:'&mu;',v:htFmtSci(p.mu,3),u:'Pa&middot;s'},
+    {k:'Pr',v:htFmt(p.Pr,3),u:''},{k:'&beta;',v:htFmtSci(p.beta,3),u:'1/K'},
+    {k:'&nu;',v:htFmtSci(p.nu,3),u:'m&sup2;/s'}
+  ].map(i=>'<div class="ht-prop-chip"><span class="pk">'+i.k+'</span><span class="pv">'+i.v+' '+i.u+'</span></div>').join('');
+}
 
 // ═══════════════════════════════════════════════
 // CALCULATOR DEFINITIONS
@@ -803,7 +922,801 @@ const CALCS = [
    },
    formula:'Se ≈ 0.5·Su for Su ≤ 1400 MPa (steels)\nG = E / (2·(1+ν))'
   },
+
+  // ═══════════════════════════════════════════════
+  // HEAT TRANSFER CALCULATORS (VDI Heat Atlas)
+  // ═══════════════════════════════════════════════
+
+  // --- Forced Convection ---
+  {id:'ht_forced', name:'Forced Convection in Tubes', cat:'Heat Transfer', color:'var(--cat-heat)', icon:'🔥',
+   desc:'Gnielinski correlation for turbulent flow, VDI approach for laminar and transition regimes in circular tubes (VDI G1).',
+   inputs:[], outputs:[],
+   calc(){ return {}; },
+   fullCustomRender(){
+     return `
+<div class="calc-section">
+  <h3><span class="dot input-dot"></span>Fluid &amp; Conditions <span class="ht-info-tag">VDI G1</span></h3>
+  <div class="field-grid">
+    <div class="field"><label>Fluid</label>
+      <select id="fc-fluid"><option value="water">Water (liquid)</option><option value="air">Air (1 bar)</option><option value="custom">Custom (manual)</option></select></div>
+    <div class="field"><label>Bulk temperature <span class="unit">[°C]</span></label>
+      <input type="number" id="fc-Tb" value="60" step="1"></div>
+  </div>
+  <div id="fc-props-display" class="ht-props-display"></div>
+  <div id="fc-custom-props" style="display:none">
+    <div class="ht-section-label">Manual fluid properties</div>
+    <div class="field-grid">
+      <div class="field"><label>&rho; <span class="unit">[kg/m³]</span></label><input type="number" id="fc-rho" step="any"></div>
+      <div class="field"><label>c<sub>p</sub> <span class="unit">[J/(kg·K)]</span></label><input type="number" id="fc-cp" step="any"></div>
+      <div class="field"><label>&lambda; <span class="unit">[W/(m·K)]</span></label><input type="number" id="fc-lambda" step="any"></div>
+      <div class="field"><label>&mu; <span class="unit">[Pa·s]</span></label><input type="number" id="fc-mu" step="any"></div>
+      <div class="field"><label>Pr <span class="unit">[-]</span></label><input type="number" id="fc-Pr" step="any"></div>
+      <div class="field"><label>Pr<sub>w</sub> at wall T <span class="unit">[-]</span></label><input type="number" id="fc-Prw" step="any"></div>
+    </div>
+  </div>
+  <hr class="ht-sep">
+  <div class="field-grid">
+    <div class="field"><label>Boundary condition</label>
+      <select id="fc-bc"><option value="constT">Constant wall temperature</option><option value="constQ">Constant heat flux</option></select></div>
+    <div class="field"><label>Wall temperature <span class="unit">[°C]</span></label>
+      <input type="number" id="fc-Tw" value="100" step="1"></div>
+  </div>
+  <div class="field-grid">
+    <div class="field"><label>Inner diameter d <span class="unit">[mm]</span></label><input type="number" id="fc-d" value="25" step="0.1"></div>
+    <div class="field"><label>Pipe length L <span class="unit">[m]</span></label><input type="number" id="fc-L" value="2" step="0.1"></div>
+    <div class="field"><label>Mean velocity <span class="unit">[m/s]</span></label><input type="number" id="fc-v" value="1.0" step="0.01"></div>
+  </div>
+  <div class="ht-btn-row">
+    <button class="calc-btn" id="fc-calc-btn">Calculate</button>
+    <button class="ht-btn-outline" id="fc-clear-btn">Clear</button>
+  </div>
+  <div id="fc-results" class="ht-results">
+    <h3>Results</h3>
+    <div id="fc-results-grid" class="ht-result-grid"></div>
+    <div id="fc-results-note" class="ht-result-note"></div>
+  </div>
+</div>`;
+   },
+   customInit(){
+     document.getElementById('fc-fluid').addEventListener('change', ()=>htUpdateFluidProps('fc'));
+     document.getElementById('fc-Tb').addEventListener('input', ()=>htUpdateFluidProps('fc'));
+     document.getElementById('fc-calc-btn').addEventListener('click', htCalcForced);
+     document.getElementById('fc-clear-btn').addEventListener('click', ()=>htClearResults('fc'));
+     htUpdateFluidProps('fc');
+   },
+   formula:'Turbulent (Re≥10⁴): Nu = (ξ/8)·Re·Pr / [1 + 12.7·√(ξ/8)·(Pr²ᐟ³−1)] · [1+(d/L)²ᐟ³] · K\nKonakov: ξ = (1.8·log₁₀(Re) − 1.5)⁻²\nLaminar (Re<2300): Nu = ³√(Nu₁³ + 0.7³ + (Nu₂−0.7)³ + Nu₃³)\n  Nu₁ = 3.66 (const Tw) or 4.364 (const q̇)\n  Nu₂ = 1.615·(Re·Pr·d/L)¹ᐟ³\n  Nu₃ = (2/(1+22·Pr))¹ᐟ⁶ · (Re·Pr·d/L)⁰·⁵'
+  },
+
+  // --- Free (Natural) Convection ---
+  {id:'ht_free', name:'Free (Natural) Convection', cat:'Heat Transfer', color:'var(--cat-heat)', icon:'🔥',
+   desc:'Churchill & Chu correlations for vertical plates, horizontal plates, and horizontal cylinders (VDI F2).',
+   inputs:[], outputs:[],
+   calc(){ return {}; },
+   fullCustomRender(){
+     return `
+<div class="calc-section">
+  <h3><span class="dot input-dot"></span>Fluid &amp; Geometry <span class="ht-info-tag">VDI F2</span></h3>
+  <div class="field-grid">
+    <div class="field"><label>Fluid</label>
+      <select id="nc-fluid"><option value="water">Water (liquid)</option><option value="air" selected>Air (1 bar)</option><option value="custom">Custom (manual)</option></select></div>
+    <div class="field"><label>Film temperature T<sub>f</sub> <span class="unit">[°C]</span></label>
+      <input type="number" id="nc-Tf" value="50" step="1"></div>
+  </div>
+  <div id="nc-props-display" class="ht-props-display"></div>
+  <div id="nc-custom-props" style="display:none">
+    <div class="ht-section-label">Manual fluid properties (at film temperature)</div>
+    <div class="field-grid">
+      <div class="field"><label>&rho; <span class="unit">[kg/m³]</span></label><input type="number" id="nc-rho" step="any"></div>
+      <div class="field"><label>c<sub>p</sub> <span class="unit">[J/(kg·K)]</span></label><input type="number" id="nc-cp" step="any"></div>
+      <div class="field"><label>&lambda; <span class="unit">[W/(m·K)]</span></label><input type="number" id="nc-lambda" step="any"></div>
+      <div class="field"><label>&mu; <span class="unit">[Pa·s]</span></label><input type="number" id="nc-mu" step="any"></div>
+      <div class="field"><label>Pr <span class="unit">[-]</span></label><input type="number" id="nc-Pr" step="any"></div>
+      <div class="field"><label>&beta; <span class="unit">[1/K]</span></label><input type="number" id="nc-beta" step="any"></div>
+    </div>
+  </div>
+  <hr class="ht-sep">
+  <div class="field-grid">
+    <div class="field"><label>Geometry</label>
+      <select id="nc-geom"><option value="vert-plate">Vertical flat plate</option><option value="horiz-plate-up">Horizontal plate (hot side up)</option><option value="horiz-plate-down">Horizontal plate (hot side down)</option><option value="horiz-cyl">Horizontal cylinder</option></select></div>
+    <div class="field"><label id="nc-Lchar-label">Height L <span class="unit">[m]</span></label>
+      <input type="number" id="nc-Lchar" value="0.5" step="0.01"></div>
+  </div>
+  <div class="field-grid">
+    <div class="field"><label>Surface temperature T<sub>s</sub> <span class="unit">[°C]</span></label><input type="number" id="nc-Ts" value="80" step="1"></div>
+    <div class="field"><label>Ambient temperature T<sub>&infin;</sub> <span class="unit">[°C]</span></label><input type="number" id="nc-Tinf" value="20" step="1"></div>
+  </div>
+  <div class="ht-btn-row">
+    <button class="calc-btn" id="nc-calc-btn">Calculate</button>
+    <button class="ht-btn-outline" id="nc-clear-btn">Clear</button>
+  </div>
+  <div id="nc-results" class="ht-results">
+    <h3>Results</h3>
+    <div id="nc-results-grid" class="ht-result-grid"></div>
+    <div id="nc-results-note" class="ht-result-note"></div>
+  </div>
+</div>`;
+   },
+   customInit(){
+     document.getElementById('nc-fluid').addEventListener('change', ()=>htUpdateFluidProps('nc'));
+     document.getElementById('nc-Tf').addEventListener('input', ()=>htUpdateFluidProps('nc'));
+     document.getElementById('nc-geom').addEventListener('change', htToggleNCFields);
+     document.getElementById('nc-calc-btn').addEventListener('click', htCalcFree);
+     document.getElementById('nc-clear-btn').addEventListener('click', ()=>htClearResults('nc'));
+     htUpdateFluidProps('nc');
+     htToggleNCFields();
+   },
+   formula:'Vertical plate (Churchill & Chu):\n  Nu = [0.825 + 0.387·(Ra·f₁)¹ᐟ⁶]²\n  f₁(Pr) = [1 + (0.492/Pr)⁹ᐟ¹⁶]⁻¹⁶ᐟ⁹\nHorizontal cylinder:\n  Nu = [0.60 + 0.387·(Ra·f₁)¹ᐟ⁶]²\nRa = Gr·Pr = g·β·ΔT·L³/ν² · Pr'
+  },
+
+  // --- Steady-State Conduction ---
+  {id:'ht_cond', name:'Steady-State Heat Conduction', cat:'Heat Transfer', color:'var(--cat-heat)', icon:'🔥',
+   desc:'Through flat walls, cylindrical walls, and spherical shells with multi-layer support and optional convective BCs (VDI E).',
+   inputs:[], outputs:[],
+   calc(){ return {}; },
+   fullCustomRender(){
+     return `
+<div class="calc-section">
+  <h3><span class="dot input-dot"></span>Geometry &amp; Conditions <span class="ht-info-tag">VDI E</span></h3>
+  <div class="field-grid">
+    <div class="field"><label>Geometry</label>
+      <select id="cd-geom"><option value="flat">Flat wall (plane)</option><option value="cylinder">Cylindrical wall</option><option value="sphere">Spherical shell</option></select></div>
+    <div class="field" id="cd-area-group"><label>Wall area A <span class="unit">[m²]</span></label>
+      <input type="number" id="cd-A" value="1" step="0.01"></div>
+  </div>
+  <div id="cd-cyl-dims" style="display:none">
+    <div class="field-grid">
+      <div class="field"><label>Pipe length <span class="unit">[m]</span></label><input type="number" id="cd-pipe-L" value="1" step="0.1"></div>
+      <div class="field"><label>Inner radius r<sub>i</sub> <span class="unit">[mm]</span></label><input type="number" id="cd-ri" value="12.5" step="0.1"></div>
+    </div>
+  </div>
+  <div id="cd-sph-dims" style="display:none">
+    <div class="field-grid">
+      <div class="field"><label>Inner radius r<sub>i</sub> <span class="unit">[mm]</span></label><input type="number" id="cd-sri" value="50" step="0.1"></div>
+    </div>
+  </div>
+  <div class="field-grid">
+    <div class="field"><label>Hot side T<sub>1</sub> <span class="unit">[°C]</span></label><input type="number" id="cd-T1" value="200" step="1"></div>
+    <div class="field"><label>Cold side T<sub>2</sub> <span class="unit">[°C]</span></label><input type="number" id="cd-T2" value="30" step="1"></div>
+  </div>
+  <hr class="ht-sep">
+  <div class="ht-section-label">Layers (inner &rarr; outer)</div>
+  <div id="cd-layers">
+    <div class="field-grid layer-row" data-layer="0">
+      <div class="field"><label>Thickness <span class="unit">[mm]</span></label><input type="number" class="cd-layer-t" value="5" step="0.1"></div>
+      <div class="field"><label>Conductivity &lambda; <span class="unit">[W/(m·K)]</span></label><input type="number" class="cd-layer-k" value="50" step="0.01"></div>
+    </div>
+  </div>
+  <div class="ht-btn-row" style="margin-bottom:12px">
+    <button class="ht-btn-outline ht-btn-sm" id="cd-add-layer">+ Add Layer</button>
+    <button class="ht-btn-outline ht-btn-sm" id="cd-remove-layer">&minus; Remove Layer</button>
+  </div>
+  <div class="ht-section-label">Convective boundary conditions (optional)</div>
+  <div class="field-grid">
+    <div class="field"><label>h<sub>inner</sub> <span class="unit">[W/(m²·K)]</span></label><input type="number" id="cd-hi" placeholder="∞ (leave empty to skip)" step="1"></div>
+    <div class="field"><label>h<sub>outer</sub> <span class="unit">[W/(m²·K)]</span></label><input type="number" id="cd-ho" placeholder="∞ (leave empty to skip)" step="1"></div>
+  </div>
+  <div class="ht-btn-row">
+    <button class="calc-btn" id="cd-calc-btn">Calculate</button>
+    <button class="ht-btn-outline" id="cd-clear-btn">Clear</button>
+  </div>
+  <div id="cd-results" class="ht-results">
+    <h3>Results</h3>
+    <div id="cd-results-grid" class="ht-result-grid"></div>
+    <div id="cd-results-note" class="ht-result-note"></div>
+  </div>
+</div>`;
+   },
+   customInit(){
+     document.getElementById('cd-geom').addEventListener('change', htToggleCDFields);
+     document.getElementById('cd-add-layer').addEventListener('click', htAddLayer);
+     document.getElementById('cd-remove-layer').addEventListener('click', htRemoveLayer);
+     document.getElementById('cd-calc-btn').addEventListener('click', htCalcConduction);
+     document.getElementById('cd-clear-btn').addEventListener('click', ()=>htClearResults('cd'));
+     htToggleCDFields();
+   },
+   formula:'Flat wall: Q̇ = ΔT / R_total,  R = Σ(t_i / (λ_i·A))\nCylindrical: R = ln(r_outer/r_inner) / (2π·L·λ)\nSpherical: R = (1/r_i − 1/r_o) / (4π·λ)\nConvective: R_conv = 1/(h·A)\nU = 1/(R_total·A)'
+  },
+
+  // --- Thermal Radiation ---
+  {id:'ht_rad', name:'Thermal Radiation', cat:'Heat Transfer', color:'var(--cat-heat)', icon:'🔥',
+   desc:'Stefan-Boltzmann law, exchange between grey surfaces, and common view factor configurations (VDI K).',
+   inputs:[], outputs:[],
+   calc(){ return {}; },
+   fullCustomRender(){
+     return `
+<div class="calc-section">
+  <h3><span class="dot input-dot"></span>Configuration &amp; Surfaces <span class="ht-info-tag">VDI K</span></h3>
+  <div class="field-grid">
+    <div class="field"><label>Configuration</label>
+      <select id="rd-config"><option value="single">Single surface to surroundings</option><option value="parallel">Two infinite parallel plates</option><option value="enclosed">Small body enclosed by large surface</option><option value="arbitrary">Two arbitrary surfaces (with view factor)</option></select></div>
+  </div>
+  <div class="field-grid">
+    <div class="field"><label>T<sub>1</sub> (hot surface) <span class="unit">[°C]</span></label><input type="number" id="rd-T1" value="400" step="1"></div>
+    <div class="field"><label>T<sub>2</sub> (cold / surroundings) <span class="unit">[°C]</span></label><input type="number" id="rd-T2" value="25" step="1"></div>
+  </div>
+  <div class="field-grid">
+    <div class="field"><label>&epsilon;<sub>1</sub> (emissivity surface 1) <span class="unit">[-]</span></label><input type="number" id="rd-eps1" value="0.9" step="0.01" min="0" max="1"></div>
+    <div class="field" id="rd-eps2-group"><label>&epsilon;<sub>2</sub> (emissivity surface 2) <span class="unit">[-]</span></label><input type="number" id="rd-eps2" value="0.9" step="0.01" min="0" max="1"></div>
+  </div>
+  <div class="field-grid">
+    <div class="field"><label>Area A<sub>1</sub> <span class="unit">[m²]</span></label><input type="number" id="rd-A1" value="1" step="0.01"></div>
+    <div class="field" id="rd-F12-group"><label>View factor F<sub>12</sub> <span class="unit">[-]</span></label><input type="number" id="rd-F12" value="1" step="0.01" min="0" max="1"></div>
+  </div>
+  <div class="ht-btn-row">
+    <button class="calc-btn" id="rd-calc-btn">Calculate</button>
+    <button class="ht-btn-outline" id="rd-clear-btn">Clear</button>
+  </div>
+  <div id="rd-results" class="ht-results">
+    <h3>Results</h3>
+    <div id="rd-results-grid" class="ht-result-grid"></div>
+    <div id="rd-results-note" class="ht-result-note"></div>
+  </div>
+</div>`;
+   },
+   customInit(){
+     document.getElementById('rd-config').addEventListener('change', htToggleRDFields);
+     document.getElementById('rd-calc-btn').addEventListener('click', htCalcRadiation);
+     document.getElementById('rd-clear-btn').addEventListener('click', ()=>htClearResults('rd'));
+     htToggleRDFields();
+   },
+   formula:'Single surface: Q̇ = ε₁·σ·A·(T₁⁴ − T₂⁴)\nParallel plates: ε_eff = 1/(1/ε₁ + 1/ε₂ − 1)\nArbitrary: Q̇ = A₁·F₁₂·ε_eff·σ·(T₁⁴ − T₂⁴)\nσ = 5.670374419 × 10⁻⁸ W/(m²·K⁴)'
+  },
+
+  // --- Heat Exchanger ---
+  {id:'ht_hx', name:'Heat Exchanger Design & Rating', cat:'Heat Transfer', color:'var(--cat-heat)', icon:'🔥',
+   desc:'LMTD and ε-NTU methods with F-correction factors for counterflow, parallel flow, crossflow, and shell-and-tube (VDI C/D).',
+   inputs:[], outputs:[],
+   calc(){ return {}; },
+   fullCustomRender(){
+     return `
+<div class="calc-section">
+  <h3><span class="dot input-dot"></span>Exchanger Setup <span class="ht-info-tag">VDI C/D</span></h3>
+  <div class="field-grid">
+    <div class="field"><label>Calculation mode</label>
+      <select id="hx-mode"><option value="design">Design — find required area A</option><option value="rating">Rating — find outlet temps &amp; Q</option><option value="check">Performance check — all temps known</option></select></div>
+    <div class="field"><label>Configuration</label>
+      <select id="hx-config"><option value="counter">Counterflow</option><option value="parallel">Parallel flow (co-current)</option><option value="cross-UU">Crossflow (both unmixed)</option><option value="cross-MU">Crossflow (C_max mixed, C_min unmixed)</option><option value="cross-UM">Crossflow (C_min mixed, C_max unmixed)</option><option value="shell-1-2">Shell &amp; tube (1-2 TEMA E)</option><option value="shell-1-4">Shell &amp; tube (1-4)</option></select></div>
+  </div>
+  <hr class="ht-sep">
+  <div class="ht-section-label">Hot side</div>
+  <div class="field-grid">
+    <div class="field"><label>T<sub>h,in</sub> <span class="unit">[°C]</span></label><input type="number" id="hx-Thi" value="150" step="1"></div>
+    <div class="field" id="hx-Tho-group"><label>T<sub>h,out</sub> <span class="unit">[°C]</span></label><input type="number" id="hx-Tho" value="90" step="1"></div>
+    <div class="field"><label>ṁ<sub>h</sub>·c<sub>p,h</sub> (= C<sub>h</sub>) <span class="unit">[W/K]</span></label><input type="number" id="hx-Ch" value="5000" step="100"></div>
+  </div>
+  <div class="ht-section-label">Cold side</div>
+  <div class="field-grid">
+    <div class="field"><label>T<sub>c,in</sub> <span class="unit">[°C]</span></label><input type="number" id="hx-Tci" value="20" step="1"></div>
+    <div class="field" id="hx-Tco-group"><label>T<sub>c,out</sub> <span class="unit">[°C]</span></label><input type="number" id="hx-Tco" value="80" step="1"></div>
+    <div class="field"><label>ṁ<sub>c</sub>·c<sub>p,c</sub> (= C<sub>c</sub>) <span class="unit">[W/K]</span></label><input type="number" id="hx-Cc" value="4000" step="100"></div>
+  </div>
+  <hr class="ht-sep">
+  <div class="ht-section-label">Heat exchanger parameters</div>
+  <div class="field-grid">
+    <div class="field"><label>Overall heat transfer coeff. U <span class="unit">[W/(m²·K)]</span></label><input type="number" id="hx-U" value="500" step="10"></div>
+    <div class="field" id="hx-A-group"><label>Heat transfer area A <span class="unit">[m²]</span></label><input type="number" id="hx-A" value="5" step="0.1"></div>
+  </div>
+  <div class="field-grid">
+    <div class="field"><label>Fouling resistance R<sub>f</sub> (total) <span class="unit">[m²·K/W]</span></label><input type="number" id="hx-Rf" value="0" step="0.0001" placeholder="0 = no fouling"></div>
+  </div>
+  <div class="ht-btn-row">
+    <button class="calc-btn" id="hx-calc-btn">Calculate</button>
+    <button class="ht-btn-outline" id="hx-clear-btn">Clear</button>
+  </div>
+  <div id="hx-results" class="ht-results">
+    <h3>Results</h3>
+    <div id="hx-results-grid" class="ht-result-grid"></div>
+    <div id="hx-results-note" class="ht-result-note"></div>
+  </div>
+</div>`;
+   },
+   customInit(){
+     document.getElementById('hx-mode').addEventListener('change', htToggleHXFields);
+     document.getElementById('hx-config').addEventListener('change', htToggleHXFields);
+     document.getElementById('hx-calc-btn').addEventListener('click', htCalcHX);
+     document.getElementById('hx-clear-btn').addEventListener('click', ()=>htClearResults('hx'));
+     htToggleHXFields();
+   },
+   formula:'ε-NTU: ε = Q̇/Q̇_max,  NTU = U·A/C_min,  C_r = C_min/C_max\nCounterflow: ε = [1−exp(−NTU·(1−Cr))] / [1−Cr·exp(−NTU·(1−Cr))]\nLMTD: Q̇ = U·A·F·ΔTLM\nΔTLM = (ΔT₁−ΔT₂) / ln(ΔT₁/ΔT₂)'
+  },
 ];
+
+// ═══════════════════════════════════════════════
+// HEAT TRANSFER CALCULATION FUNCTIONS
+// ═══════════════════════════════════════════════
+
+// --- Toggle/UI helpers for heat calcs ---
+function htToggleNCFields() {
+  const geom = document.getElementById('nc-geom').value;
+  const label = document.getElementById('nc-Lchar-label');
+  if (geom === 'vert-plate') label.innerHTML = 'Height L <span class="unit">[m]</span>';
+  else if (geom.startsWith('horiz-plate')) label.innerHTML = 'Char. length A/P <span class="unit">[m]</span>';
+  else label.innerHTML = 'Outer diameter D <span class="unit">[m]</span>';
+}
+
+function htToggleCDFields() {
+  const geom = document.getElementById('cd-geom').value;
+  document.getElementById('cd-area-group').style.display = (geom === 'flat') ? '' : 'none';
+  document.getElementById('cd-cyl-dims').style.display = (geom === 'cylinder') ? 'block' : 'none';
+  document.getElementById('cd-sph-dims').style.display = (geom === 'sphere') ? 'block' : 'none';
+}
+
+function htAddLayer() {
+  const container = document.getElementById('cd-layers');
+  const n = container.children.length;
+  const row = document.createElement('div');
+  row.className = 'field-grid layer-row';
+  row.dataset.layer = n;
+  row.innerHTML = '<div class="field"><label>Layer '+(n+1)+' thickness <span class="unit">[mm]</span></label><input type="number" class="cd-layer-t" value="20" step="0.1"></div><div class="field"><label>Layer '+(n+1)+' conductivity &lambda; <span class="unit">[W/(m·K)]</span></label><input type="number" class="cd-layer-k" value="0.04" step="0.001"></div>';
+  container.appendChild(row);
+}
+
+function htRemoveLayer() {
+  const container = document.getElementById('cd-layers');
+  if (container.children.length > 1) container.removeChild(container.lastElementChild);
+}
+
+function htToggleRDFields() {
+  const config = document.getElementById('rd-config').value;
+  const eps2Group = document.getElementById('rd-eps2-group');
+  const f12Group = document.getElementById('rd-F12-group');
+  if (config === 'single' || config === 'enclosed') { eps2Group.style.display = 'none'; f12Group.style.display = 'none'; }
+  else if (config === 'parallel') { eps2Group.style.display = ''; f12Group.style.display = 'none'; }
+  else { eps2Group.style.display = ''; f12Group.style.display = ''; }
+}
+
+function htToggleHXFields() {
+  const mode = document.getElementById('hx-mode').value;
+  const aGroup = document.getElementById('hx-A-group');
+  const thoGroup = document.getElementById('hx-Tho-group');
+  const tcoGroup = document.getElementById('hx-Tco-group');
+  if (mode === 'design') { aGroup.style.display = 'none'; thoGroup.style.display = ''; tcoGroup.style.display = ''; }
+  else if (mode === 'rating') { aGroup.style.display = ''; thoGroup.style.display = 'none'; tcoGroup.style.display = 'none'; }
+  else { aGroup.style.display = ''; thoGroup.style.display = ''; tcoGroup.style.display = ''; }
+}
+
+// --- Forced Convection (VDI G1) ---
+function htCalcForced() {
+  const fluid = document.getElementById('fc-fluid').value;
+  const Tb = parseFloat(document.getElementById('fc-Tb').value);
+  const Tw = parseFloat(document.getElementById('fc-Tw').value);
+  const d_mm = parseFloat(document.getElementById('fc-d').value);
+  const L = parseFloat(document.getElementById('fc-L').value);
+  const v = parseFloat(document.getElementById('fc-v').value);
+  const bc = document.getElementById('fc-bc').value;
+  const d = d_mm / 1000;
+
+  let props, Pr_w;
+  if (fluid === 'custom') {
+    props = { rho:parseFloat(document.getElementById('fc-rho').value), cp:parseFloat(document.getElementById('fc-cp').value),
+      lambda:parseFloat(document.getElementById('fc-lambda').value), mu:parseFloat(document.getElementById('fc-mu').value),
+      Pr:parseFloat(document.getElementById('fc-Pr').value) };
+    props.nu = props.mu / props.rho;
+    Pr_w = parseFloat(document.getElementById('fc-Prw').value) || props.Pr;
+  } else {
+    props = getFluidProps(fluid, Tb);
+    Pr_w = getFluidProps(fluid, Tw).Pr;
+  }
+
+  const Re = v * d / props.nu;
+  const Pr = props.Pr;
+  const xi = (val) => Math.pow(1.8 * Math.log10(val) - 1.5, -2);
+  const isGas = (fluid === 'air');
+  let K_turb, K_lam;
+  if (isGas) {
+    const Tb_K = Tb+273.15, Tw_K = Tw+273.15;
+    K_turb = Math.pow(Tb_K/Tw_K, 0.45); K_lam = 1;
+  } else {
+    K_turb = Math.pow(Pr/Pr_w, 0.11);
+    const mu_w = fluid !== 'custom' ? getFluidProps(fluid, Tw).mu : props.mu;
+    K_lam = Math.pow(props.mu/mu_w, 0.14);
+  }
+
+  let Nu, regime;
+  function nuLam(Re_val) {
+    const Nu1 = (bc === 'constT') ? 3.66 : 4.364;
+    const Nu2 = 1.615 * Math.pow(Re_val*Pr*d/L, 1/3);
+    const Nu3 = Math.pow(2/(1+22*Pr), 1/6) * Math.pow(Re_val*Pr*d/L, 0.5);
+    return Math.pow(Math.pow(Nu1,3)+0.7*0.7*0.7+Math.pow(Math.max(Nu2-0.7,0),3)+Math.pow(Nu3,3), 1/3) * K_lam;
+  }
+  function nuTurb(Re_val) {
+    const f = xi(Re_val);
+    const num = (f/8)*Re_val*Pr;
+    const den = 1+12.7*Math.sqrt(f/8)*(Math.pow(Pr,2/3)-1);
+    const ent = 1+Math.pow(d/L, 2/3);
+    return (num/den)*ent*K_turb;
+  }
+
+  if (Re < 2300) { regime = 'Laminar'; Nu = nuLam(Re); }
+  else if (Re < 10000) {
+    regime = 'Transition';
+    const gamma = (Re-2300)/(10000-2300);
+    Nu = (1-gamma)*nuLam(2300) + gamma*nuTurb(10000);
+  } else { regime = 'Turbulent'; Nu = nuTurb(Re); }
+
+  const h = Nu * props.lambda / d;
+  const f_darcy = (Re >= 2300) ? xi(Math.max(Re,10000)) : 64/Re;
+  const dP = f_darcy * (L/d) * 0.5 * props.rho * v * v;
+
+  const items = [
+    {label:'Flow regime', value:regime, full:true},
+    {label:'Reynolds number Re', value:htFmt(Re,0)},
+    {label:'Prandtl number Pr', value:htFmt(Pr,3)},
+    {label:'Pr at wall Pr<sub>w</sub>', value:htFmt(Pr_w,3)},
+    {label:'Friction factor &xi;', value:htFmtSci(f_darcy,3)},
+    {label:'Correction K', value:htFmt(regime==='Laminar'?K_lam:K_turb,4)},
+    {label:'L/d ratio', value:htFmt(L/d,1)},
+    {label:'Nusselt number Nu', value:htFmt(Nu,2), highlight:true},
+    {label:'Heat transfer coeff. h', value:htFmt(h,1), unit:'W/(m&sup2;&middot;K)', highlight:true},
+    {label:'Pressure drop &Delta;p', value:htFmt(dP,0), unit:'Pa'}
+  ];
+  document.getElementById('fc-results-grid').innerHTML = htResultHTML(items);
+  let note = '<strong>Correlation:</strong> ';
+  if (regime==='Laminar') note += 'VDI G1 laminar ('+(bc==='constT'?'const. T<sub>w</sub>':'const. q&#x0307;')+'), Nu&#x0304; composite formula.';
+  else if (regime==='Turbulent') note += 'Gnielinski (VDI G1), valid for 10<sup>4</sup> &le; Re &le; 10<sup>6</sup>, 0.1 &le; Pr &le; 1000.';
+  else note += 'VDI G1 transition interpolation between laminar (Re=2300) and turbulent (Re=10<sup>4</sup>).';
+  if (Re > 1e6) note += '<br><strong>Warning:</strong> Re &gt; 10<sup>6</sup>, outside validated range.';
+  if (Pr > 1000 || Pr < 0.1) note += '<br><strong>Warning:</strong> Pr outside validated range (0.1&ndash;1000).';
+  document.getElementById('fc-results-note').innerHTML = note;
+  document.getElementById('fc-results').classList.add('show');
+}
+
+// --- Free Convection (VDI F2) ---
+function htCalcFree() {
+  const fluid = document.getElementById('nc-fluid').value;
+  const Tf = parseFloat(document.getElementById('nc-Tf').value);
+  const geom = document.getElementById('nc-geom').value;
+  const Lc = parseFloat(document.getElementById('nc-Lchar').value);
+  const Ts = parseFloat(document.getElementById('nc-Ts').value);
+  const Tinf = parseFloat(document.getElementById('nc-Tinf').value);
+  const dT = Math.abs(Ts - Tinf);
+
+  let props;
+  if (fluid === 'custom') {
+    props = { rho:parseFloat(document.getElementById('nc-rho').value), cp:parseFloat(document.getElementById('nc-cp').value),
+      lambda:parseFloat(document.getElementById('nc-lambda').value), mu:parseFloat(document.getElementById('nc-mu').value),
+      Pr:parseFloat(document.getElementById('nc-Pr').value), beta:parseFloat(document.getElementById('nc-beta').value) };
+    props.nu = props.mu / props.rho;
+  } else { props = getFluidProps(fluid, Tf); }
+
+  const g = 9.81;
+  const Gr = g * props.beta * dT * Math.pow(Lc,3) / Math.pow(props.nu,2);
+  const Ra = Gr * props.Pr;
+  const f1 = Math.pow(1+Math.pow(0.492/props.Pr, 9/16), -16/9);
+
+  let Nu, corrName;
+  if (geom === 'vert-plate') {
+    Nu = Math.pow(0.825 + 0.387*Math.pow(Ra*f1, 1/6), 2);
+    corrName = 'Churchill & Chu (vertical plate)';
+  } else if (geom === 'horiz-cyl') {
+    const f1c = Math.pow(1+Math.pow(0.559/props.Pr, 9/16), -16/9);
+    Nu = Math.pow(0.60 + 0.387*Math.pow(Ra*f1c, 1/6), 2);
+    corrName = 'Churchill & Chu (horizontal cylinder)';
+  } else if (geom === 'horiz-plate-up') {
+    const RaF = Ra * f1;
+    Nu = (RaF <= 2e7) ? 0.766*Math.pow(RaF,1/5) : 0.15*Math.pow(RaF,1/3);
+    Nu = Math.max(Nu, 0.6);
+    corrName = 'VDI F2 horizontal plate (hot side up)';
+  } else {
+    Nu = 0.6 * Math.pow(Ra*f1, 1/5);
+    Nu = Math.max(Nu, 0.6);
+    corrName = 'VDI F2 horizontal plate (hot side down)';
+  }
+
+  const h = Nu * props.lambda / Lc;
+  const items = [
+    {label:'Grashof number Gr', value:htFmtSci(Gr,3)},
+    {label:'Rayleigh number Ra', value:htFmtSci(Ra,3)},
+    {label:'Prandtl number Pr', value:htFmt(props.Pr,3)},
+    {label:'f<sub>1</sub>(Pr)', value:htFmt(f1,4)},
+    {label:'&Delta;T', value:htFmt(dT,1), unit:'K'},
+    {label:'&beta;', value:htFmtSci(props.beta,3), unit:'1/K'},
+    {label:'Nusselt number Nu', value:htFmt(Nu,2), highlight:true},
+    {label:'Heat transfer coeff. h', value:htFmt(h,2), unit:'W/(m&sup2;&middot;K)', highlight:true}
+  ];
+  document.getElementById('nc-results-grid').innerHTML = htResultHTML(items);
+  let note = '<strong>Correlation:</strong> '+corrName;
+  if (Ra < 0.1) note += '<br><strong>Note:</strong> Very low Ra; conduction dominates.';
+  note += '<br>Flow regime: Ra = '+htFmtSci(Ra,2)+(Ra>1e9?' (turbulent)':' (laminar)');
+  document.getElementById('nc-results-note').innerHTML = note;
+  document.getElementById('nc-results').classList.add('show');
+}
+
+// --- Conduction (VDI E) ---
+function htCalcConduction() {
+  const geom = document.getElementById('cd-geom').value;
+  const T1 = parseFloat(document.getElementById('cd-T1').value);
+  const T2 = parseFloat(document.getElementById('cd-T2').value);
+  const dT = T1 - T2;
+  const hi = parseFloat(document.getElementById('cd-hi').value) || Infinity;
+  const ho = parseFloat(document.getElementById('cd-ho').value) || Infinity;
+  const thickInputs = document.querySelectorAll('.cd-layer-t');
+  const kInputs = document.querySelectorAll('.cd-layer-k');
+  const layers = [];
+  for (let i = 0; i < thickInputs.length; i++) {
+    layers.push({ t:parseFloat(thickInputs[i].value)/1000, k:parseFloat(kInputs[i].value) });
+  }
+
+  let Q, R_total, items = [], interfaceTemps = [];
+
+  if (geom === 'flat') {
+    const A = parseFloat(document.getElementById('cd-A').value);
+    let R_conv_i = (hi===Infinity)?0:1/(hi*A), R_conv_o = (ho===Infinity)?0:1/(ho*A), R_cond = 0;
+    const R_layers = layers.map(l => l.t/(l.k*A));
+    R_layers.forEach(r => R_cond += r);
+    R_total = R_conv_i + R_cond + R_conv_o;
+    Q = dT / R_total;
+    let T_curr = T1;
+    if (hi !== Infinity) { T_curr -= Q*R_conv_i; interfaceTemps.push({name:'Inner wall surface',T:T_curr}); }
+    for (let i = 0; i < layers.length; i++) {
+      T_curr -= Q*R_layers[i];
+      interfaceTemps.push({name: i<layers.length-1 ? 'Interface '+(i+1)+'/'+(i+2) : 'Outer wall surface', T:T_curr});
+    }
+    const U = 1/(R_total*A);
+    items = [
+      {label:'Heat flow Q&#x0307;', value:htFmt(Q,2), unit:'W', highlight:true},
+      {label:'Heat flux q&#x0307;', value:htFmt(Q/A,2), unit:'W/m&sup2;', highlight:true},
+      {label:'Overall U-value', value:htFmt(U,3), unit:'W/(m&sup2;&middot;K)'},
+      {label:'Total resistance R', value:htFmtSci(R_total,3), unit:'K/W'}
+    ];
+    if (R_conv_i > 0) items.push({label:'R<sub>conv,inner</sub>', value:htFmtSci(R_conv_i,3), unit:'K/W'});
+    layers.forEach((l,i) => items.push({label:'R<sub>layer '+(i+1)+'</sub> ('+htFmt(l.t*1000,1)+' mm, &lambda;='+htFmt(l.k,3)+')', value:htFmtSci(R_layers[i],3), unit:'K/W', full:true}));
+    if (R_conv_o > 0) items.push({label:'R<sub>conv,outer</sub>', value:htFmtSci(R_conv_o,3), unit:'K/W'});
+  } else if (geom === 'cylinder') {
+    const Lpipe = parseFloat(document.getElementById('cd-pipe-L').value);
+    const ri = parseFloat(document.getElementById('cd-ri').value)/1000;
+    const PI2L = 2*Math.PI*Lpipe;
+    let r = ri; const R_layers = [];
+    for (const l of layers) { const r_outer = r+l.t; R_layers.push(Math.log(r_outer/r)/(PI2L*l.k)); r = r_outer; }
+    const ro = r;
+    const R_conv_i = (hi===Infinity)?0:1/(hi*2*Math.PI*ri*Lpipe);
+    const R_conv_o = (ho===Infinity)?0:1/(ho*2*Math.PI*ro*Lpipe);
+    let R_cond = 0; R_layers.forEach(rl => R_cond += rl);
+    R_total = R_conv_i + R_cond + R_conv_o;
+    Q = dT / R_total;
+    let T_curr = T1;
+    if (hi !== Infinity) { T_curr -= Q*R_conv_i; interfaceTemps.push({name:'Inner surface',T:T_curr}); }
+    let r_curr = ri;
+    for (let i = 0; i < layers.length; i++) { T_curr -= Q*R_layers[i]; r_curr += layers[i].t; interfaceTemps.push({name:'r = '+htFmt(r_curr*1000,1)+' mm',T:T_curr}); }
+    const Ai = 2*Math.PI*ri*Lpipe, Ao = 2*Math.PI*ro*Lpipe;
+    items = [
+      {label:'Heat flow Q&#x0307;', value:htFmt(Q,2), unit:'W', highlight:true},
+      {label:'q&#x0307;<sub>inner</sub>', value:htFmt(Q/Ai,2), unit:'W/m&sup2;'},
+      {label:'q&#x0307;<sub>outer</sub>', value:htFmt(Q/Ao,2), unit:'W/m&sup2;'},
+      {label:'Outer radius r<sub>o</sub>', value:htFmt(ro*1000,2), unit:'mm'},
+      {label:'Total resistance R', value:htFmtSci(R_total,3), unit:'K/W'}
+    ];
+    if (R_conv_i > 0) items.push({label:'R<sub>conv,inner</sub>', value:htFmtSci(R_conv_i,3), unit:'K/W'});
+    layers.forEach((l,i) => items.push({label:'R<sub>layer '+(i+1)+'</sub>', value:htFmtSci(R_layers[i],3), unit:'K/W'}));
+    if (R_conv_o > 0) items.push({label:'R<sub>conv,outer</sub>', value:htFmtSci(R_conv_o,3), unit:'K/W'});
+  } else {
+    const ri = parseFloat(document.getElementById('cd-sri').value)/1000;
+    let r = ri; const R_layers = [];
+    for (const l of layers) { const r_outer = r+l.t; R_layers.push((1/r - 1/r_outer)/(4*Math.PI*l.k)); r = r_outer; }
+    const ro = r;
+    const R_conv_i = (hi===Infinity)?0:1/(hi*4*Math.PI*ri*ri);
+    const R_conv_o = (ho===Infinity)?0:1/(ho*4*Math.PI*ro*ro);
+    let R_cond = 0; R_layers.forEach(rl => R_cond += rl);
+    R_total = R_conv_i + R_cond + R_conv_o;
+    Q = dT / R_total;
+    items = [
+      {label:'Heat flow Q&#x0307;', value:htFmt(Q,2), unit:'W', highlight:true},
+      {label:'Outer radius r<sub>o</sub>', value:htFmt(ro*1000,2), unit:'mm'},
+      {label:'Total resistance R', value:htFmtSci(R_total,3), unit:'K/W'}
+    ];
+    layers.forEach((l,i) => items.push({label:'R<sub>layer '+(i+1)+'</sub>', value:htFmtSci(R_layers[i],3), unit:'K/W'}));
+  }
+  interfaceTemps.forEach(it => items.push({label:'T @ '+it.name, value:htFmt(it.T,1), unit:'&deg;C'}));
+  document.getElementById('cd-results-grid').innerHTML = htResultHTML(items);
+  document.getElementById('cd-results-note').innerHTML =
+    '<strong>Geometry:</strong> '+(geom==='flat'?'Plane wall':geom==='cylinder'?'Cylindrical shell':'Spherical shell')+
+    ', '+layers.length+' layer(s). Steady-state conduction (VDI E).';
+  document.getElementById('cd-results').classList.add('show');
+}
+
+// --- Radiation (VDI K) ---
+function htCalcRadiation() {
+  const sigma = 5.670374419e-8;
+  const config = document.getElementById('rd-config').value;
+  const T1_C = parseFloat(document.getElementById('rd-T1').value);
+  const T2_C = parseFloat(document.getElementById('rd-T2').value);
+  const eps1 = parseFloat(document.getElementById('rd-eps1').value);
+  const eps2 = parseFloat(document.getElementById('rd-eps2').value) || 1;
+  const A1 = parseFloat(document.getElementById('rd-A1').value);
+  const F12 = parseFloat(document.getElementById('rd-F12').value) || 1;
+  const T1 = T1_C+273.15, T2 = T2_C+273.15;
+  const T14 = Math.pow(T1,4), T24 = Math.pow(T2,4);
+
+  let Q, eps_eff, corrName;
+  if (config === 'single') { eps_eff = eps1; Q = eps1*sigma*A1*(T14-T24); corrName = 'Single grey surface to black surroundings'; }
+  else if (config === 'parallel') { eps_eff = 1/(1/eps1+1/eps2-1); Q = eps_eff*sigma*A1*(T14-T24); corrName = 'Two infinite parallel grey plates'; }
+  else if (config === 'enclosed') { eps_eff = eps1; Q = eps1*sigma*A1*(T14-T24); corrName = 'Small body enclosed by large surface (A<sub>1</sub> &lt;&lt; A<sub>2</sub>)'; }
+  else { eps_eff = 1/(1/eps1+1/eps2-1); Q = A1*F12*eps_eff*sigma*(T14-T24); corrName = 'Two grey surfaces with view factor'; }
+
+  const q = Q/A1, Eb1 = sigma*T14, Eb2 = sigma*T24;
+  const h_rad = (T1 !== T2) ? Q/(A1*(T1_C-T2_C)) : 0;
+  const items = [
+    {label:'Net heat flow Q&#x0307;<sub>12</sub>', value:htFmt(Q,2), unit:'W', highlight:true},
+    {label:'Heat flux q&#x0307;', value:htFmt(q,2), unit:'W/m&sup2;', highlight:true},
+    {label:'Radiation h<sub>rad</sub>', value:htFmt(h_rad,2), unit:'W/(m&sup2;&middot;K)'},
+    {label:'Effective emissivity &epsilon;<sub>eff</sub>', value:htFmt(eps_eff,4)},
+    {label:'E<sub>b,1</sub> = &sigma;T<sub>1</sub>&sup4;', value:htFmt(Eb1,1), unit:'W/m&sup2;'},
+    {label:'E<sub>b,2</sub> = &sigma;T<sub>2</sub>&sup4;', value:htFmt(Eb2,1), unit:'W/m&sup2;'},
+    {label:'T<sub>1</sub>', value:htFmt(T1,2), unit:'K'},
+    {label:'T<sub>2</sub>', value:htFmt(T2,2), unit:'K'},
+    {label:'&sigma; (Stefan-Boltzmann)', value:'5.670 &times; 10<sup>-8</sup>', unit:'W/(m&sup2;&middot;K&sup4;)', full:true}
+  ];
+  document.getElementById('rd-results-grid').innerHTML = htResultHTML(items);
+  document.getElementById('rd-results-note').innerHTML =
+    '<strong>Configuration:</strong> '+corrName+'.<br>&sigma; = 5.670374419 &times; 10<sup>-8</sup> W/(m&sup2;&middot;K&sup4;) (CODATA 2018).';
+  document.getElementById('rd-results').classList.add('show');
+}
+
+// --- Heat Exchanger (VDI C/D) ---
+function htLmtd(dT1, dT2) {
+  if (Math.abs(dT1-dT2) < 0.001) return dT1;
+  if (dT1 <= 0 || dT2 <= 0) return NaN;
+  return (dT1-dT2) / Math.log(dT1/dT2);
+}
+
+function htFcorrShell(R, P, nShellPasses) {
+  if (P < 1e-10) return 1;
+  if (Math.abs(R-1) < 1e-6) {
+    const s = P*Math.SQRT2;
+    const den = (1-P)*Math.log((2-P*(2-Math.SQRT2))/(2-P*(2+Math.SQRT2)));
+    return Math.abs(den) < 1e-10 ? 1 : s/den;
+  }
+  const S = Math.sqrt(R*R+1);
+  const num = S*Math.log((1-P)/(1-R*P));
+  const a = 2/P-1-R+S, b = 2/P-1-R-S;
+  const den = (R-1)*Math.log(a/b);
+  if (Math.abs(den) < 1e-10 || a/b <= 0) return NaN;
+  return Math.min(num/den, 1);
+}
+
+function htEpsFromNTU(NTU, Cr, config) {
+  if (Cr < 1e-10) return 1-Math.exp(-NTU);
+  switch (config) {
+    case 'counter':
+      if (Math.abs(Cr-1)<1e-6) return NTU/(1+NTU);
+      return (1-Math.exp(-NTU*(1-Cr)))/(1-Cr*Math.exp(-NTU*(1-Cr)));
+    case 'parallel': return (1-Math.exp(-NTU*(1+Cr)))/(1+Cr);
+    case 'cross-UU': { const n=Math.pow(NTU,0.22); return 1-Math.exp((n/Cr)*(Math.exp(-Cr*Math.pow(NTU,0.78))-1)); }
+    case 'cross-MU': return (1/Cr)*(1-Math.exp(-Cr*(1-Math.exp(-NTU))));
+    case 'cross-UM': return 1-Math.exp(-(1/Cr)*(1-Math.exp(-Cr*NTU)));
+    case 'shell-1-2': case 'shell-1-4': {
+      const E=Math.sqrt(1+Cr*Cr), expE=Math.exp(-NTU*E);
+      return 2/(1+Cr+E*(1+expE)/(1-expE));
+    }
+    default: return NaN;
+  }
+}
+
+function htNTUfromEps(eps, Cr, config) {
+  if (eps <= 0) return 0;
+  if (Cr < 1e-10) return -Math.log(1-eps);
+  switch (config) {
+    case 'counter':
+      if (Math.abs(Cr-1)<1e-6) return eps/(1-eps);
+      return (1/(Cr-1))*Math.log((eps-1)/(eps*Cr-1));
+    case 'parallel': return -Math.log(1-eps*(1+Cr))/(1+Cr);
+    default: {
+      let lo=0, hi=50, mid;
+      for (let i=0; i<60; i++) { mid=(lo+hi)/2; if (htEpsFromNTU(mid,Cr,config)<eps) lo=mid; else hi=mid; }
+      return mid;
+    }
+  }
+}
+
+function htCalcHX() {
+  const mode = document.getElementById('hx-mode').value;
+  const config = document.getElementById('hx-config').value;
+  const Thi = parseFloat(document.getElementById('hx-Thi').value);
+  const Tci = parseFloat(document.getElementById('hx-Tci').value);
+  const Ch = parseFloat(document.getElementById('hx-Ch').value);
+  const Cc = parseFloat(document.getElementById('hx-Cc').value);
+  const U_clean = parseFloat(document.getElementById('hx-U').value);
+  const Rf = parseFloat(document.getElementById('hx-Rf').value) || 0;
+  const U = (Rf > 0) ? 1/(1/U_clean + Rf) : U_clean;
+  const Cmin = Math.min(Ch,Cc), Cmax = Math.max(Ch,Cc), Cr = Cmin/Cmax, Qmax = Cmin*(Thi-Tci);
+
+  let Q, eps, NTU, A, Tho, Tco, LMTD_val, F, items = [];
+
+  if (mode === 'design') {
+    Tho = parseFloat(document.getElementById('hx-Tho').value);
+    Tco = parseFloat(document.getElementById('hx-Tco').value);
+    const Qh = Ch*(Thi-Tho), Qc = Cc*(Tco-Tci);
+    Q = (Qh+Qc)/2;
+    if (Math.abs(Qh-Qc)/Math.max(Qh,Qc) > 0.05) items.push({label:'Energy balance warning', value:'Q<sub>h</sub>='+htFmt(Qh,0)+'W, Q<sub>c</sub>='+htFmt(Qc,0)+'W', full:true});
+    eps = Q/Qmax;
+    const dT1_cf = Thi-Tco, dT2_cf = Tho-Tci, LMTD_cf = htLmtd(dT1_cf, dT2_cf);
+    NTU = htNTUfromEps(eps, Cr, config);
+    A = NTU*Cmin/U;
+    LMTD_val = LMTD_cf;
+    F = (isFinite(LMTD_cf)&&LMTD_cf>0) ? Q/(U*A*LMTD_cf) : NaN;
+    if (config === 'counter') { F = 1.0; A = Q/(U*LMTD_cf); }
+    else if (config === 'parallel') { const dT1_p=Thi-Tci, dT2_p=Tho-Tco; LMTD_val=htLmtd(dT1_p,dT2_p); F=1.0; A=Q/(U*LMTD_val); }
+    else if (config.startsWith('shell')) {
+      const R = (Math.abs(Tco-Tci)>0.01)?(Thi-Tho)/(Tco-Tci):1e10;
+      const P = (Math.abs(Thi-Tci)>0.01)?(Tco-Tci)/(Thi-Tci):0;
+      F = htFcorrShell(R, P, config==='shell-1-4'?2:1);
+      if (isFinite(F)&&F>0) A = Q/(U*F*LMTD_cf);
+    } else { F = (isFinite(LMTD_cf)&&LMTD_cf>0&&A>0) ? Q/(U*A*LMTD_cf) : NaN; }
+    items = items.concat([
+      {label:'Heat duty Q&#x0307;', value:htFmt(Q,0), unit:'W', highlight:true},
+      {label:'Required area A', value:htFmt(A,2), unit:'m&sup2;', highlight:true},
+      {label:'Effectiveness &epsilon;', value:htFmt(eps,4)},
+      {label:'NTU', value:htFmt(NTU,3)},
+      {label:'LMTD (counterflow ref.)', value:htFmt(LMTD_cf,2), unit:'K'},
+      {label:'F-correction factor', value:isFinite(F)?htFmt(F,4):'N/A'},
+      {label:'Effective &Delta;T<sub>m</sub>', value:isFinite(F)?htFmt(F*LMTD_cf,2):htFmt(Q/(U*A),2), unit:'K'},
+      {label:'C<sub>r</sub> = C<sub>min</sub>/C<sub>max</sub>', value:htFmt(Cr,4)},
+      {label:'C<sub>min</sub>', value:htFmt(Cmin,0), unit:'W/K'},
+      {label:'Q<sub>max</sub>', value:htFmt(Qmax,0), unit:'W'}
+    ]);
+  } else if (mode === 'rating') {
+    A = parseFloat(document.getElementById('hx-A').value);
+    NTU = U*A/Cmin;
+    eps = htEpsFromNTU(NTU, Cr, config);
+    Q = eps*Qmax;
+    Tho = Thi - Q/Ch; Tco = Tci + Q/Cc;
+    const dT1_cf=Thi-Tco, dT2_cf=Tho-Tci, LMTD_cf=htLmtd(dT1_cf,dT2_cf);
+    F = (LMTD_cf>0)?Q/(U*A*LMTD_cf):NaN;
+    items = [
+      {label:'Heat duty Q&#x0307;', value:htFmt(Q,0), unit:'W', highlight:true},
+      {label:'T<sub>h,out</sub>', value:htFmt(Tho,1), unit:'&deg;C', highlight:true},
+      {label:'T<sub>c,out</sub>', value:htFmt(Tco,1), unit:'&deg;C', highlight:true},
+      {label:'Effectiveness &epsilon;', value:htFmt(eps,4)},
+      {label:'NTU', value:htFmt(NTU,3)},
+      {label:'LMTD (counterflow ref.)', value:htFmt(LMTD_cf,2), unit:'K'},
+      {label:'F-correction factor', value:isFinite(F)?htFmt(F,4):'N/A'},
+      {label:'C<sub>r</sub>', value:htFmt(Cr,4)},
+      {label:'C<sub>min</sub>', value:htFmt(Cmin,0), unit:'W/K'},
+      {label:'Q<sub>max</sub>', value:htFmt(Qmax,0), unit:'W'}
+    ];
+  } else {
+    Tho = parseFloat(document.getElementById('hx-Tho').value);
+    Tco = parseFloat(document.getElementById('hx-Tco').value);
+    A = parseFloat(document.getElementById('hx-A').value);
+    const Qh=Ch*(Thi-Tho), Qc=Cc*(Tco-Tci);
+    Q = (Qh+Qc)/2; eps = Q/Qmax; NTU = U*A/Cmin;
+    const eps_calc = htEpsFromNTU(NTU, Cr, config);
+    const dT1_cf=Thi-Tco, dT2_cf=Tho-Tci, LMTD_cf=htLmtd(dT1_cf,dT2_cf);
+    F = (LMTD_cf>0&&A>0)?Q/(U*A*LMTD_cf):NaN;
+    const U_eff = (A>0&&LMTD_cf>0&&isFinite(F)&&F>0)?Q/(A*F*LMTD_cf):Q/(A*LMTD_cf);
+    items = [
+      {label:'Q&#x0307; (from temps)', value:htFmt(Q,0), unit:'W', highlight:true},
+      {label:'&epsilon; (actual)', value:htFmt(eps,4), highlight:true},
+      {label:'&epsilon; (from NTU)', value:htFmt(eps_calc,4)},
+      {label:'Q<sub>h</sub> = C<sub>h</sub>&middot;&Delta;T<sub>h</sub>', value:htFmt(Qh,0), unit:'W'},
+      {label:'Q<sub>c</sub> = C<sub>c</sub>&middot;&Delta;T<sub>c</sub>', value:htFmt(Qc,0), unit:'W'},
+      {label:'Energy balance error', value:htFmt(Math.abs(Qh-Qc)/Math.max(Math.abs(Qh),Math.abs(Qc))*100,1), unit:'%'},
+      {label:'NTU', value:htFmt(NTU,3)},
+      {label:'LMTD (counterflow)', value:htFmt(LMTD_cf,2), unit:'K'},
+      {label:'F-factor', value:isFinite(F)?htFmt(F,4):'N/A'},
+      {label:'C<sub>r</sub>', value:htFmt(Cr,4)},
+      {label:'U<sub>eff</sub> (back-calc)', value:htFmt(U_eff,1), unit:'W/(m&sup2;&middot;K)'},
+      {label:'Q<sub>max</sub>', value:htFmt(Qmax,0), unit:'W'}
+    ];
+  }
+  if (Rf > 0) {
+    items.push({label:'U<sub>clean</sub>', value:htFmt(U_clean,1), unit:'W/(m&sup2;&middot;K)'});
+    items.push({label:'U<sub>fouled</sub>', value:htFmt(U,1), unit:'W/(m&sup2;&middot;K)'});
+    items.push({label:'R<sub>fouling</sub>', value:htFmtSci(Rf,2), unit:'m&sup2;&middot;K/W'});
+  }
+  document.getElementById('hx-results-grid').innerHTML = htResultHTML(items);
+  const configNames = {'counter':'Counterflow','parallel':'Parallel flow','cross-UU':'Crossflow (both unmixed)',
+    'cross-MU':'Crossflow (C<sub>max</sub> mixed)','cross-UM':'Crossflow (C<sub>min</sub> mixed)',
+    'shell-1-2':'Shell & tube 1-2 (TEMA E)','shell-1-4':'Shell & tube 1-4'};
+  const modeNames = {'design':'Design (sizing)','rating':'Rating (performance)','check':'Performance check'};
+  let note = '<strong>'+modeNames[mode]+'</strong> &mdash; '+configNames[config];
+  note += '<br>Method: &epsilon;-NTU (VDI C3) with LMTD cross-check.';
+  if (isFinite(F)&&F<0.75) note += '<br><strong>Warning:</strong> F = '+htFmt(F,3)+' &lt; 0.75. Consider more shell passes or different arrangement.';
+  if (eps>0.95) note += '<br><strong>Note:</strong> &epsilon; &gt; 0.95 &mdash; approaching thermodynamic limit.';
+  if (config==='parallel'&&eps>1/(1+Cr)) note += '<br><strong>Warning:</strong> Requested &epsilon; exceeds parallel-flow limit of '+htFmt(1/(1+Cr),3)+'.';
+  document.getElementById('hx-results-note').innerHTML = note;
+  document.getElementById('hx-results').classList.add('show');
+}
 
 // ═══════════════════════════════════════════════
 // GROUP BY CATEGORY
@@ -861,6 +1774,16 @@ function buildCalcPanel(c) {
   panel.className = 'calc-panel';
   panel.id = 'panel-' + c.id;
   let html = `<div class="calc-title">${c.name}</div><div class="calc-desc">${c.desc}</div>`;
+
+  // Full custom render (heat transfer calculators)
+  if (c.fullCustomRender) {
+    html += c.fullCustomRender();
+    if (c.formula) {
+      html += `<div class="calc-section"><h3><span class="dot formula-dot"></span>Formulas</h3><div class="formula-box">${c.formula}</div></div>`;
+    }
+    panel.innerHTML = html;
+    return panel;
+  }
 
   // Custom render (reference tables)
   if (c.customRender) {
@@ -946,16 +1869,21 @@ function showCalc(id) {
     document.getElementById('calcContainer').appendChild(panel);
 
     // Wire up events
-    panel.querySelectorAll('input[data-calc], select[data-calc]').forEach(el => {
-      el.addEventListener('input', () => runCalc(id));
-      el.addEventListener('change', () => runCalc(id));
-    });
-    panel.querySelectorAll('button[data-calc]').forEach(btn => {
-      btn.addEventListener('click', () => runCalc(id));
-    });
+    if (c.customInit) {
+      // Heat transfer calculators: custom initialization
+      c.customInit(panel);
+    } else {
+      panel.querySelectorAll('input[data-calc], select[data-calc]').forEach(el => {
+        el.addEventListener('input', () => runCalc(id));
+        el.addEventListener('change', () => runCalc(id));
+      });
+      panel.querySelectorAll('button[data-calc]').forEach(btn => {
+        btn.addEventListener('click', () => runCalc(id));
+      });
 
-    // Auto-calculate on open
-    setTimeout(() => runCalc(id), 50);
+      // Auto-calculate on open
+      setTimeout(() => runCalc(id), 50);
+    }
   }
   panel.classList.add('active');
 
